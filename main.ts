@@ -1,20 +1,34 @@
-// News-image entry for 26 November 2026 (Node 22, standard library only).
-// The front page is pre-rendered at build time as entry.png (1024x1024, PNG);
-// at run time this program only copies those bytes to /output/entry.png, so
-// both grading runs write byte-identical output. No network is used.
-//
-// Run locally with:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// news-image-20261126 — penyalin halaman depan koran.
+// Halaman depan koran 26 November 2026 sudah jadi sebagai entry.png
+// di sebelah file ini. Tugas program ini hanya menaruh salinan persis
+// gambar itu di $MAKEFUN_OUTPUT_DIR/entry.png (atau /output kalau
+// variabelnya tidak diset). Tidak ada unduhan, tidak ada gambar yang
+// digambar saat jalan, jadi setiap run menulis byte yang identik.
 
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-mkdirSync(outDir, { recursive: true });
-const here = dirname(fileURLToPath(import.meta.url));
-const src = join(here, 'entry.png');
-if (!existsSync(src)) {
-  throw new Error(`entry.png missing next to main.ts (${here})`);
+function abort(reason: string): never {
+  throw new Error(`news-image-20261126: ${reason}`);
 }
-copyFileSync(src, join(outDir, 'entry.png'));
+
+function placeFrontPage(): void {
+  const folder = fileURLToPath(new URL('.', import.meta.url));
+  const picture = join(folder, 'entry.png');
+  if (!existsSync(picture)) {
+    abort(`entry.png hilang dari ${folder}`);
+  }
+  const bytes = readFileSync(picture);
+  const destinationDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+  mkdirSync(destinationDir, { recursive: true });
+  const destination = join(destinationDir, 'entry.png');
+  writeFileSync(destination, bytes);
+  const check = readFileSync(destination);
+  if (!check.equals(bytes)) {
+    abort('salinan entry.png tidak identik dengan sumber');
+  }
+  console.log(`entry.png tersalin (${bytes.length} byte)`);
+}
+
+placeFrontPage();
